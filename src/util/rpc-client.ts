@@ -526,9 +526,9 @@ export async function createSmartTransaction(
             ? config.p2shp2wpkh
             : addressType(h.bitcoinAddress) === 'p2pkh'
             ? config.p2pkh
-            : addressType(to.bitcoinAddress) === 'p2wsh'
+            : addressType(h.bitcoinAddress) === 'p2wsh'
             ? config.p2wsh
-            : addressType(to.bitcoinAddress) === 'p2tr'
+            : addressType(h.bitcoinAddress) === 'p2tr'
             ? config.p2tr
             : 128,
         amount: h.amount,
