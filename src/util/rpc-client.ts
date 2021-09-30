@@ -629,6 +629,92 @@ export async function createSmartTransaction(
     allOutputs.push(identifier);
   }
 
+    let totalW = [42]
+
+    let values = [];
+    for (let i = 0; i < res.inputs.length; i++) {
+      const input = res.inputs[i];
+      for (let i = 0; i < unspent.length; i++) {
+        const unspentO = unspent[i];
+        if (input === `${unspentO.txid}_${unspentO.vout}`) { 
+          values.push(unspentO.amount)
+
+          switch(addressType(unspentO.address)) { 
+            case "p2wpkh": {
+              totalW.push(67.75 * 4)
+              break;
+            }
+            case "p2sh": { 
+              totalW.push(90.75 * 4)
+              break;
+            } 
+          }
+          break;
+        }
+      }
+    }
+    if (values.length != res.inputs.length) { 
+      return new Error( '[internal error]: missing inputs');
+    }
+  
+    let outputsA = [];
+    for (let i = 0; i < allOutputs.length; i++) {
+      const output = allOutputs[i];
+      outputsA.push(output.amount);
+      
+    }
+    const sumOfInputs = values.reduce((a, b) => a + b, 0);
+    const sumOfOutputs = outputsA.reduce((a, b) => a + b, 0);
+
+    if ((sumOfInputs - sumOfOutputs) != res.miningFee) {  
+      return new Error( '[internal error]: values do not add up');
+    }
+    for (let i = 0; i < allOutputs.length; i++) {
+      const h = allOutputs[i];
+      switch(addressType(h.bitcoinAddress)) { 
+        case "p2wpkh": {
+          totalW.push(config.p2wpkh)
+          break;
+        }
+        case "p2sh": { 
+          totalW.push(config.p2shp2wpkh)
+          break;
+        } 
+        case "p2pkh": {
+          totalW.push(config.p2pkh)
+          break;
+        }
+        case "p2wsh": {
+          totalW.push(config.p2wsh)
+          break;
+        }
+        case "p2tr": {
+          totalW.push(config.p2tr)
+          break;
+        }
+        default: {
+          totalW.push(128)
+          break;
+        }
+      }
+    }
+
+    if (res.changeAmount != 0) { 
+      totalW.push(124)
+    }
+
+    const sumW = totalW.reduce((a, b) => a + b, 0);
+    if (sumW != res.weight) { 
+      return new Error('[internal error]: miscalculated weight');
+    
+    }
+
+    // OK: coinsayer can still make unnecessary costs in various ways if it wanted to, just not absurd unnecessary costs.
+    if (Math.round(Math.ceil(feeRate) * (Math.round(sumW * 1.33))) < res.miningFee - res.changeAmount ) { 
+      return new Error('[internal error]: The transaction that was created was found to be too expensive! Try again!');
+    }
+
+
   // we do not interact with the initial hookins, thus we don't need a deep copy
   const rest = Array.from(
     allOutputs.reduce(
