@@ -1,5 +1,5 @@
 import * as hi from 'blindmixer-lib';
-import custodianInfo, { ackSecretKey } from '../custodian-info';
+import {custodianInfo,  ackSecretKey } from '../custodian-info';
 
 export default async function ackCustodianInfo(url: string): Promise<hi.POD.Signature> {
   const message = url.substring('/ack-custodian-info/'.length).split('/');

@@ -1,7 +1,7 @@
 import * as hi from 'blindmixer-lib';
 import * as rpcClient from '../util/rpc-client';
 
-import ci, { fundingSecretKey, ackSecretKey } from '../custodian-info';
+import {custodianInfo, ackSecretKey } from '../custodian-info';
 import processHookin from '../util/process-hookin';
 
 import { pool, withTransaction } from '../db/util';
@@ -18,9 +18,12 @@ export default async function addHookin(hookin: hi.Hookin): Promise<R> {
   if (txOut.amount != hookin.amount) {
     throw 'hookin cheating attempt';
   }
-  if (ci.fundingKey instanceof Array) {throw 'internal error'} // hotfix
-  const expectedAddress = ci.fundingKey.tweak(hookin.getTweak().toPublicKey()).toBitcoinAddress(config.bNetwork);
-  const expectedNestedAddress = ci.fundingKey
+
+  if (custodianInfo.fundingKey instanceof Array) {
+    throw 'internal error'
+  } // hotfix
+  const expectedAddress = custodianInfo.fundingKey.tweak(hookin.getTweak().toPublicKey()).toBitcoinAddress(config.bNetwork);
+  const expectedNestedAddress = custodianInfo.fundingKey
     .tweak(hookin.getTweak().toPublicKey())
     .toNestedBitcoinAddress(config.bNetwork);
   if (expectedAddress !== txOut.address) {

@@ -38,6 +38,12 @@ export default async function runner(req: http.IncomingMessage, res: http.Server
     throw new Error('404: missing url');
   }
 
+  // if (custodianInfo.wipeDate) {
+  //   if (new Date(custodianInfo.wipeDate).getTime() < Date.now()) { 
+  //     return ('Server is currently wiping!')
+  //   }
+  // }
+
   switch (url) {
     case '/':
       return info(); // constant

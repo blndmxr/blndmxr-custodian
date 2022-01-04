@@ -1,6 +1,6 @@
 import { Pool, PoolClient, types } from 'pg';
 import http from 'http';
-// import crypto from 'crypto';
+ import crypto from 'crypto';
 import { api } from '../util/api-request';
 
 types.setTypeParser(20, function (val) {
@@ -53,26 +53,26 @@ if (!ips) {
   }
 
 
-export function ipCheckConst(req: http.IncomingMessage)  {
-  if (!ips) { 
-    throw "error: couldn't get ips"
+  export function ipCheckConst(req: http.IncomingMessage)  {
+    if (!ips) { 
+      throw "error: couldn't get ips"
+    }
+  
+    // forwarded by CL. (else rewrite the header)
+    const cl = req.headers['x-forwarded-for']
+    const clIP = cl instanceof Array ? cl[0] : typeof cl === 'string' ? cl : '127.0.0.1'
+        
+  
+    for (let i = 0; i < ips.length; i++) {
+      const element = ips[i];
+      if (element.Address === clIP)
+       { 
+         return true
+       }
+    }
+    return false
+  
   }
-
-  // forwarded by CL. (else rewrite the header)
-  const cl = req.headers['x-forwarded-for']
-  const clIP = cl instanceof Array ? cl[0] : typeof cl === 'string' ? cl : '127.0.0.1'
-      
-
-  for (let i = 0; i < ips.length; i++) {
-    const element = ips[i];
-    if (element.Address === clIP)
-     { 
-       return true
-     }
-  }
-  return false
-
-}
 export function constTime<T>(debugName: string = 'func') {
   let fixedTime = 1; // how long to sleep, auto gets bumped as required;
 

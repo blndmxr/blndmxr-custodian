@@ -4,7 +4,7 @@ import pg from 'pg';
 
 import * as hi from 'blindmixer-lib';
 import { withTransaction, pool } from './util';
-import custodianInfo, { fundingSecretKey, ackSecretKey } from '../custodian-info';
+import {custodianInfo, ackSecretKey } from '../custodian-info';
 
 // Returns 'DOUBLE_SPEND' on error. On success returns the claimable and if it's new or not
 type InsertRes =
@@ -53,11 +53,30 @@ export async function insertTransfer(transfer: hi.LightningPayment | hi.Hookout 
     // I don't see any other solution?
     // await client.query('LOCK TABLE transfer_inputs IN ACCESS EXCLUSIVE MODE');
 
+    let decay = 0;
+
     for (const coin of transfer.inputs) {
       const owner: string = coin.owner.toPOD();
       // verify unblinded signature, else return cheat attempt!
       const existenceProof: hi.Signature = coin.receipt;
-      const isValid = existenceProof.verify(coin.owner.buffer, custodianInfo.blindCoinKeys[coin.magnitude.n]);
+      
+      // we follow the coins period flag, no reason for him to lie else verification will fail
+      const isValid = existenceProof.verify(coin.owner.buffer, custodianInfo.blindCoinKeys[custodianInfo.blindCoinKeys.length - coin.period][coin.magnitude.n]);
+      
+      let multiplier = ((custodianInfo.blindCoinKeys.length - 1 - coin.period) / 100)
+
+      // if mroe than 100 periods have passed since ack, coin is worthless
+      if (multiplier > 1) { 
+        multiplier = 1;
+      }
+
+      // if less than 1 period has passed, coin has negative decay, not possible so decay is 0
+      if (multiplier < 0) { 
+        multiplier = 0;
+      }
+      decay += Math.round(((2 ** coin.magnitude.n) * multiplier));    
+
+
       if (!isValid) {
         return 'CHEATING_ATTEMPT'; // actually a cheating attempt!
       }
@@ -70,6 +89,10 @@ export async function insertTransfer(transfer: hi.LightningPayment | hi.Hookout 
       } catch (err) {
         throw err;
       }
+    }
+
+    if (decay != transfer.decay) { 
+      return 'CHEATING_ATTEMPT'
     }
 
     const ackdClaimble: hi.Acknowledged.Claimable = hi.Acknowledged.acknowledge(transfer, ackSecretKey);

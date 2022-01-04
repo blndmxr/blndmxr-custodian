@@ -1,6 +1,6 @@
 import * as hi from 'blindmixer-lib';
 import * as lightning from '../lightning/index';
-import custodianInfo, { ackSecretKey } from '../custodian-info';
+import {custodianInfo, ackSecretKey } from '../custodian-info';
 import { withTransaction } from '../db/util';
 
 export default async function genInvoice(body: any) {
@@ -23,11 +23,11 @@ export default async function genInvoice(body: any) {
     throw 'expected an natural number for amount';
   }
 
-  if (custodianInfo.wipeDate) { 
-    if (new Date(custodianInfo.wipeDate) < new Date(Date.now() + 48 * 60 * 60 * 3600)) { 
-      throw "wiping in less than 2 days. Please don't deposit more funds."
-    }
-  }
+  // if (custodianInfo.wipeDate) { 
+  //   if (new Date(custodianInfo.wipeDate) < new Date(Date.now() + 48 * 60 * 60 * 3600)) { 
+  //     throw "wiping in less than 2 days. Please don't deposit more funds."
+  //   }
+  // }
 
   // we also need a transaction here, else two invoices with the same claimant could be generated, but only one can be recovered.
   // for update won't work so we also need locks here (nonexisting rows),

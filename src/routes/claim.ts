@@ -15,6 +15,16 @@ export default async function claim(body: any) {
     throw claimRequest;
   }
 
+  if (claimRequest.coinPeriod != blindingSecretKeys.length) { 
+    throw "WRONG_KEYS"
+  }
+  
+  // we should calculate if the user abides by his wallet to create 
+  // the most efficient coin-request and not spam the custodian with 1000s of coinrequests of 0 magnitude.
+  if (claimRequest.coinRequests.length > 256)  { // this seems like a *very* fair assumption
+    throw 'INEFFICIENT_CLAIM_REQUEST' 
+  }
+
   const claimHash = claimRequest.claimableHash.toPOD();
 
   return withTransaction(async (client) => {
@@ -71,7 +81,7 @@ export default async function claim(body: any) {
       const coinReq = coinRequests[i];
 
       const blindedExistenceProof = hi.blindSign(
-        blindingSecretKeys[coinReq.magnitude.n],
+        blindingSecretKeys[blindingSecretKeys.length - claimRequest.coinPeriod][coinReq.magnitude.n], // 0  = newest     // if we change keys mid-signing, still use the old keys (very unlikely);
         secretNonce,
         coinReq.blindedOwner
       );
