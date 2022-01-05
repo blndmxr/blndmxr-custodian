@@ -59,6 +59,10 @@ export async function insertTransfer(transfer: hi.LightningPayment | hi.Hookout 
       const owner: string = coin.owner.toPOD();
       // verify unblinded signature, else return cheat attempt!
       const existenceProof: hi.Signature = coin.receipt;
+
+      if (coin.period > custodianInfo.blindCoinKeys.length) {
+        return "CHEATING_ATTEMPT";
+      }
       
       // we follow the coins period flag, no reason for him to lie else verification will fail
       const isValid = existenceProof.verify(coin.owner.buffer, custodianInfo.blindCoinKeys[custodianInfo.blindCoinKeys.length - coin.period][coin.magnitude.n]);
