@@ -5,6 +5,7 @@ import * as coinsayer from './coinsayer';
 import JSONRpcClient from './jsonrpc';
 import { decodeBitcoinAddress } from 'blindmixer-lib';
 import * as config from '../config';
+import { PoolClient } from 'pg'; 
 
 //let jsonClient = new JSONRpcClient('127.0.0.1', 18332, 'testnetdev', 'l5JwLwtAXnaF');
 // ip is not process.env'd. change manually
@@ -445,6 +446,7 @@ export type CreateTransactionResult = {
 
 // feeRate of 0 means it's consolidation style feeRate
 export async function createSmartTransaction(
+  dbClient: PoolClient,
   to: hi.Hookout,
   optionals: hi.Hookout[],
   feeRate: number,
@@ -461,6 +463,22 @@ export async function createSmartTransaction(
 
   if (unspent.length === 0) {
     return new Error('[INTERNAL ERROR]: NO_INPUTS_AVAILABLE');
+  }
+
+  // very simple placeholder function to prevent same inputs of being received 
+  // when low activity (when last in -> first out)
+  // this is wrapped in transaction from send-hookout
+  const { rows } = await dbClient.query(`
+  SELECT * FROM claimables WHERE claimable->>'kind'='Hookin'
+  AND (claimable->>'hash') IN (SELECT (status->>'claimableHash') FROM statuses WHERE (status->>'kind' = 'Claimed'))
+ 
+`);
+ 
+  const lastHookin = rows[rows.length - 1].claimable as hi.POD.Hookin
+  const val = unspent.reduce((a, b) => a + b.amount, 0)
+ 
+  if ((val - lastHookin.amount) > (lastHookin.amount)) {  
+    unspent = unspent.filter((u) => u.txid != lastHookin.txid)
   }
 
   let fixedConsolidationFeeRate = await getConsolidationFeeRate();

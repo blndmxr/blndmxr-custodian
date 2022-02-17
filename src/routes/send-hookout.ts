@@ -181,6 +181,7 @@ export default async function sendHookout(hookout: hi.Hookout) {
           const noChange = hookout.priority === 'FREE';
           const sendTransaction = config.hasCoinsayer
             ? await rpcClient.createSmartTransaction(
+                dbClient,
                 hookout,
                 hookout.priority === 'IMMEDIATE' || hookout.priority === 'FREE' ? otherHookouts : [], // we don't really want to
                 hookout.priority === 'IMMEDIATE'
