@@ -476,8 +476,11 @@ export async function createSmartTransaction(
  
   const lastHookin = rows[rows.length - 1].claimable as hi.POD.Hookin
   const val = unspent.reduce((a, b) => a + b.amount, 0)
- 
-  if ((val - lastHookin.amount) > (lastHookin.amount)) {  
+
+  let spendingAmount = optionals.reduce((a, b) => a + b.amount, 0)
+  spendingAmount = (spendingAmount + to.amount)
+
+  if ((val - lastHookin.amount) > (spendingAmount)) {  
     unspent = unspent.filter((u) => u.txid != lastHookin.txid)
   }
 
